@@ -105,7 +105,7 @@ Vagrant.configure("2") do |config|
           server webserver1 192.168.33.10:80 check
       ' | sudo tee /etc/haproxy/haproxy.cfg
       sudo systemctl restart haproxy
-      
+
     # Skapa uppdateringsskript
       echo '#!/bin/bash
       apt update -y
@@ -120,6 +120,10 @@ Vagrant.configure("2") do |config|
       (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/update-system.sh >> /var/log/update-system.log 2>&1") | crontab -
     SHELL
   end
+
+  # SSh instaling 
+  // 
+  
 
   # General settings eller Cron job
   config.vm.provider "virtualbox" do |vb|
