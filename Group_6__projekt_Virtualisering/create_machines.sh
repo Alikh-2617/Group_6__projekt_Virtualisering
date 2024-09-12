@@ -1,25 +1,40 @@
 
-Vagrant.configure("2") do |config|
 
-  # Definition för Web Server VM
+Vagrant.configure("2") do |config|
+  
+  # Definiera Webbserver (VM1)
   config.vm.define "webserver" do |webserver|
     webserver.vm.box = "ubuntu/bionic64"
     webserver.vm.hostname = "webserver"
     webserver.vm.network "private_network", type: "dhcp"
     webserver.vm.network "forwarded_port", guest: 80, host: 8080
     webserver.vm.network "forwarded_port", guest: 443, host: 8443
+
+    # Resursallokering
     webserver.vm.provider "virtualbox" do |vb|
-      vb.memory = "4096"
+      vb.memory = 4096
       vb.cpus = 2
-      vb.customize ["modifyvm", :id, "--cpuexecutioncap", "100"]
-      vb.customize ["modifyvm", :id, "--vram", "32"]
     end
-    web.vm.provision "shell", inline: <<-SHELL
-      sudo apt-get update
-      sudo apt-get install -y nginx
-      sudo ufw allow 'Nginx Full'
+
+    # Provisionering för uppdateringar
+    webserver.vm.provision "shell", inline: <<-SHELL
+      # Uppdatera och installera paket
+      apt update && apt upgrade -y
+      apt install -y nginx
+
+      # Skapa uppdateringsskript
+      echo '#!/bin/bash
+      apt update -y
+      apt upgrade -y
+      apt autoremove -y
+      apt clean' > /usr/local/bin/update-system.sh
+
+      # Gör skriptet körbart
+      chmod +x /usr/local/bin/update-system.sh
+
+      # Lägg till cron-jobb
+      (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/update-system.sh >> /var/log/update-system.log 2>&1") | crontab -
     SHELL
-    
   end
     
     # Public network för att nå web server på port 80 and 443
@@ -36,25 +51,26 @@ Vagrant.configure("2") do |config|
      SHELL
   end
 
-  # Instaliera en DB 
-  config.vm.define "databasserver" do |dbserver|
-    dbserver.vm.box = "ubuntu/bionic64"
-    dbserver.vm.hostname = "databasserver"
-    dbserver.vm.network "private_network", type: "dhcp"
-    dbserver.vm.provider "virtualbox" do |vb|
-      vb.memory = "8192"
-      vb.cpus = 4
-      vb.customize ["modifyvm", :id, "--cpuexecutioncap", "100"]
-      vb.customize ["modifyvm", :id, "--vram", "32"]
-    end
-    dbserver.vm.provision "shell", inline: <<-SHELL
-      sudo apt-get update
-      sudo apt-get install -y mysql-server
-      sudo systemctl start mysql
-      sudo mysql_secure_installation
+    # Provisionering för uppdateringar
+    databaseserver.vm.provision "shell", inline: <<-SHELL
+      # Uppdatera och installera paket
+      apt update && apt upgrade -y
+      apt install -y mysql-server
+
+      # Skapa uppdateringsskript
+      echo '#!/bin/bash
+      apt update -y
+      apt upgrade -y
+      apt autoremove -y
+      apt clean' > /usr/local/bin/update-system.sh
+
+      # Gör skriptet körbart
+      chmod +x /usr/local/bin/update-system.sh
+
+      # Lägg till cron-jobb
+      (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/update-system.sh >> /var/log/update-system.log 2>&1") | crontab -
     SHELL
   end
- end
 
   # Load balancer VM
   config.vm.define "loadbalancer" do |lb|
@@ -89,10 +105,23 @@ Vagrant.configure("2") do |config|
           server webserver1 192.168.33.10:80 check
       ' | sudo tee /etc/haproxy/haproxy.cfg
       sudo systemctl restart haproxy
+      
+    # Skapa uppdateringsskript
+      echo '#!/bin/bash
+      apt update -y
+      apt upgrade -y
+      apt autoremove -y
+      apt clean' > /usr/local/bin/update-system.sh
+
+      # Gör skriptet körbart
+      chmod +x /usr/local/bin/update-system.sh
+
+      # Lägg till cron-jobb
+      (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/update-system.sh >> /var/log/update-system.log 2>&1") | crontab -
     SHELL
   end
 
-  # General settings 
+  # General settings eller Cron job
   config.vm.provider "virtualbox" do |vb|
     vb.memory = "1024"
     vb.cpus = 2
